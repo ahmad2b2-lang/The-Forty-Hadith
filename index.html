@@ -485,9 +485,12 @@ const TOTAL_Q=QS.length;
 const TOTAL_W=Object.keys(WORDS).length;
 const AR=n=>String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
 
-let S={view:"home",page:0,ans:{},tries:{},words:{},tash:true,fs:1,theme:null,font:"naskh"};
+/* Defaults: day mode, tashkeel hidden. */
+let S={view:"home",page:0,ans:{},tries:{},words:{},tash:false,fs:1,theme:"light",font:"naskh",prefsV:2};
 const KEY="jihad-nafs-reader-v3";
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S=Object.assign(S,s)}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s){
+  if(s.prefsV!==2){s.theme="light";s.tash=false;s.prefsV=2}   // readers saved before the new defaults start on them too
+  S=Object.assign(S,s)}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 const $=id=>document.getElementById(id);
@@ -694,7 +697,7 @@ main.addEventListener("click",e=>{
     return;
   }
   if(e.target.closest("#start")||e.target.closest("#startQ"))go(1);
-  if(e.target.closest("#reset")){S={view:"level",page:0,at:null,ans:{},tries:{},words:{},tash:S.tash,fs:S.fs,theme:S.theme,font:S.font};render(-1)}
+  if(e.target.closest("#reset")){S={view:"level",page:0,at:null,ans:{},tries:{},words:{},tash:S.tash,fs:S.fs,theme:S.theme,font:S.font,prefsV:2};render(-1)}
 });
 // keep the entry animation from replaying when the same page re-renders after an answer
 const _render=render;render=function(dir){_render(dir);if(dir===0){const a=main.firstElementChild;a&&(a.style.animation="none")}};
