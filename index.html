@@ -228,6 +228,28 @@ body.chromeless main{padding-block:12px calc(28px + env(safe-area-inset-bottom,0
 .goal .cup svg{width:38px;height:38px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--paper);font-family:var(--f-ui);font-size:.95rem;padding:10px 18px;border-radius:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
 
+/* account */
+.homebar{justify-content:space-between!important;align-items:center}
+.acct{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--plum);cursor:pointer;max-width:60%}
+.acct svg{width:18px;height:18px;flex:none}
+.acct span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct.in{background:var(--plum-soft);border-color:transparent}
+.tabs{display:flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.tabs button{flex:1;border:0;background:var(--paper);padding:10px;font-family:var(--f-ui);font-size:.98rem;cursor:pointer}
+.tabs button + button{border-inline-start:2px solid var(--line)}
+.tabs button[aria-selected="true"]{background:var(--plum);color:var(--paper);font-weight:600}
+.form{display:grid;gap:10px}
+.field{display:grid;gap:4px;font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--muted)}
+.field input{font:inherit;font-weight:400;font-size:1rem;color:var(--ink);background:var(--ground);border:2px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.field input:focus{outline:none;border-color:var(--plum)}
+.field input[dir="ltr"]{text-align:left}
+.amsg{margin:0;font-family:var(--f-ui);font-size:.92rem;line-height:1.6;padding:8px 12px;border-radius:10px}
+.amsg.err{background:var(--bad-soft);color:var(--bad)}
+.amsg.info{background:var(--plum-soft);color:var(--plum)}
+.astats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.anote{margin:0;font-family:var(--f-ui);font-size:.85rem;line-height:1.6;color:var(--muted);text-align:center}
+.big:disabled{opacity:.6;cursor:default}
+
 /* leaf burst */
 .leaf{position:fixed;width:14px;height:14px;border-radius:0 70% 0 70%;pointer-events:none;z-index:50;animation:fall 1.1s ease-out forwards}
 @keyframes fall{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
@@ -255,6 +277,8 @@ body.chromeless main{padding-block:12px calc(28px + env(safe-area-inset-bottom,0
 </div></nav>
 
 <div class="toast" id="toast" role="status" hidden></div>
+
+<div class="veil" id="accVeil" hidden><div class="card" role="dialog" aria-modal="true" aria-labelledby="accTitle" id="accCard"></div></div>
 
 <div class="veil" id="veil" hidden><div class="card" role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <span class="new" id="wNew"></span>
@@ -294,6 +318,10 @@ body.chromeless main{padding-block:12px calc(28px + env(safe-area-inset-bottom,0
       <button id="tOn" aria-pressed="true">ظاهر</button>
       <button id="tOff" aria-pressed="false">مخفي</button>
     </div>
+  </div>
+  <div class="set-row">
+    <span>الحساب</span>
+    <button class="ghost" id="setAcct" style="padding:8px 14px">تسجيل الدخول</button>
   </div>
   <button class="big" id="setClose" style="margin-top:6px">تم</button>
 </div></div>
@@ -491,7 +519,7 @@ const KEY="jihad-nafs-reader-v3";
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s){
   if(s.prefsV!==2){s.theme="light";s.tash=false;s.prefsV=2}   // readers saved before the new defaults start on them too
   S=Object.assign(S,s)}}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof cloudSave==="function")cloudSave()}
 
 const $=id=>document.getElementById(id);
 const main=$("main");
@@ -536,7 +564,7 @@ function levelDone(){return QS.every(x=>S.ans[x.key])}
 
 function renderHome(){
   main.innerHTML=`<div class="home">
-    <div class="homebar"><button class="tbtn gear" data-act="settings" aria-label="الإعدادات">${GEAR()}</button></div>
+    <div class="homebar">${acctChip()}<button class="tbtn gear" data-act="settings" aria-label="الإعدادات">${GEAR()}</button></div>
     <div class="homemid"><figure class="bookcover"><img src="${COVER}" alt="غلاف كتاب شرح الأربعون حديثاً للناشئة"></figure>
     <button class="big" data-act="map">${stars()||gems()?"أكمل الرحلة":"ابدأ الرحلة"}</button>
     <div class="meta"><span>${AR(LEVELS.length)} قصص</span><span>${AR(LEVELS.length)} مستويات</span><span>★ ${AR(stars())} نجوم</span></div></div>
@@ -683,7 +711,7 @@ function closeWord(){$("veil").hidden=true;lastFocus&&lastFocus.focus()}
 
 main.addEventListener("click",e=>{
   const act=e.target.closest("[data-act]");
-  if(act){const a=act.dataset.act;if(a==="map")show("map");else if(a==="home")show("home",-1);else if(a==="settings")openSettings();return}
+  if(act){const a=act.dataset.act;if(a==="map")show("map");else if(a==="home")show("home",-1);else if(a==="settings")openSettings();else if(a==="account")openAccount();return}
   const lv=e.target.closest(".node");
   if(lv){const l=LEVELS[+lv.dataset.level-1];if(l.ready)show("level");else toast(`المستوى ${AR(l.n)} قريباً إن شاء الله`);return}
   const w=e.target.closest(".w");if(w){openWord(w.dataset.w,w);return}
@@ -709,7 +737,9 @@ $("wClose").onclick=closeWord;
 $("veil").addEventListener("click",e=>{if(e.target===$("veil"))closeWord()});
 document.addEventListener("keydown",e=>{
   if(!$("veil").hidden){if(e.key==="Escape")closeWord();return}
+  if(!$("accVeil").hidden){if(e.key==="Escape")closeAccount();return}
   if(!$("setVeil").hidden){if(e.key==="Escape")closeSettings();return}
+  if(e.target.closest&&e.target.closest("input"))return;
   if(e.target.closest&&e.target.closest("button")&&(e.key===" "||e.key==="Enter"))return;
   if(S.view!=="level")return;
   if(e.key==="ArrowLeft")go(1);if(e.key==="ArrowRight")go(-1);
@@ -764,7 +794,150 @@ addEventListener("resize",()=>{clearTimeout(rT);rT=setTimeout(()=>{
   if(innerWidth===vw&&Math.abs(innerHeight-vh)<60)return;   // ignore the phone's address bar sliding
   vw=innerWidth;vh=innerHeight;dirty=true;if(S.view==="level")render(0)},150)});
 document.fonts&&document.fonts.ready.then(()=>{dirty=true;if(S.view==="level")render(0)});
-function start(data){if(data&&typeof data.page==="number")S=Object.assign(S,data);else load();applyPrefs();render(1)}
+/* ================= Accounts and cloud saving (Firebase Auth + Firestore) =================
+   Paste the web-app config from Firebase console → Project settings → Your apps. These values are public;
+   the security rules (firestore.rules) are what protect each player's data. Leave null to run without accounts. */
+const FIREBASE_CONFIG=null;
+const FB_VER="10.12.2";
+const cloud={state:FIREBASE_CONFIG?"loading":"off",user:null,name:"",pendingName:"",auth:null,db:null,last:"",timer:null,saving:false,error:""};
+const ICON_USER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function acctChip(){
+  if(cloud.state==="off")return "<span></span>";
+  return cloud.user?`<button class="acct in" data-act="account">${ICON_USER}<span>${esc(cloud.name||"حسابي")}</span></button>`
+                   :`<button class="acct" data-act="account">${ICON_USER}<span>تسجيل الدخول</span></button>`;
+}
+function loadScript(src){return new Promise((ok,no)=>{const t=document.createElement("script");t.src=src;t.onload=ok;t.onerror=no;document.head.appendChild(t)})}
+async function initCloud(){
+  if(!FIREBASE_CONFIG)return;
+  for(const base of [`https://www.gstatic.com/firebasejs/${FB_VER}/`,`https://cdn.jsdelivr.net/npm/firebase@${FB_VER}/`]){
+    try{for(const f of ["firebase-app-compat.js","firebase-auth-compat.js","firebase-firestore-compat.js"])if(!(f.includes("auth")?window.firebase?.auth:f.includes("firestore")?window.firebase?.firestore:window.firebase))await loadScript(base+f);break}catch(e){}
+  }
+  if(!window.firebase?.firestore||!window.firebase?.auth){cloud.state="unavailable";refreshAccountBits();return}
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    cloud.auth=firebase.auth();cloud.db=firebase.firestore();
+  }catch(e){cloud.state="unavailable";refreshAccountBits();return}
+  cloud.state="ready";
+  cloud.auth.onAuthStateChanged(async u=>{
+    cloud.user=u;cloud.name=u?(cloud.pendingName||u.displayName||u.email.split("@")[0]):"";
+    if(u)await cloudPull();
+    refreshAccountBits();
+  });
+}
+function docRef(){return cloud.db.collection("players").doc(cloud.user.uid)}
+function payload(){
+  return {displayName:cloud.name.slice(0,40),totalStars:stars(),totalWords:gems(),
+    levels:{"1":{stars:stars(),rating:rating(),words:gems(),completed:levelDone(),ans:S.ans,tries:S.tries,found:S.words,at:S.at||null}},
+    prefs:{tash:S.tash,fs:S.fs,theme:S.theme,font:S.font}};
+}
+/* Combine what is on this phone with what is in the account: nothing earned anywhere is lost. */
+function mergeIn(lv){
+  if(!lv)return;
+  for(const [k,v] of Object.entries(lv.ans||{}))if(!S.ans[k]||(v==="first"&&S.ans[k]!=="first"))S.ans[k]=v;
+  for(const [k,v] of Object.entries(lv.tries||{}))S.tries[k]=[...new Set([...(S.tries[k]||[]),...v])];
+  for(const k of Object.keys(lv.found||{}))S.words[k]=1;
+  if(!S.at&&lv.at)S.at=lv.at;
+}
+async function cloudPull(){
+  try{
+    const snap=await docRef().get();
+    if(snap.exists){
+      const d=snap.data();mergeIn(d.levels&&d.levels["1"]);
+      if(d.prefs)Object.assign(S,{tash:!!d.prefs.tash,fs:d.prefs.fs??S.fs,theme:d.prefs.theme||S.theme,font:d.prefs.font||S.font});
+      if(d.displayName&&!cloud.pendingName)cloud.name=d.displayName;
+      applyPrefs();dirty=true;
+    }else{
+      await docRef().set({...payload(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    cloud.last="";cloud.error="";save();await cloudFlush();
+    render(0);
+  }catch(e){cloud.error="تعذّر تحميل تقدّمك من الحساب. سيُحفظ على هذا الجهاز حتى يعود الاتصال.";console.warn(e)}
+}
+function cloudSave(){
+  if(cloud.state!=="ready"||!cloud.user)return;
+  clearTimeout(cloud.timer);cloud.timer=setTimeout(cloudFlush,1200);
+}
+async function cloudFlush(){
+  if(!cloud.user)return;
+  const data=payload(),key=JSON.stringify(data);
+  if(key===cloud.last)return;
+  try{await docRef().set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});cloud.last=key;cloud.error=""}
+  catch(e){cloud.error="لم نتمكّن من حفظ تقدّمك الآن. سنحاول مجدداً تلقائياً.";console.warn(e);clearTimeout(cloud.timer);cloud.timer=setTimeout(cloudFlush,15000)}
+  if(!$("accVeil").hidden)drawAccount();
+}
+const AUTH_ERR={"auth/email-already-in-use":"هذا البريد مسجّل من قبل. جرّب تسجيل الدخول.","auth/invalid-email":"البريد الإلكتروني غير صحيح.",
+  "auth/weak-password":"كلمة المرور قصيرة. استخدم ٦ أحرف على الأقل.","auth/missing-password":"اكتب كلمة المرور.",
+  "auth/invalid-credential":"البريد أو كلمة المرور غير صحيحة.","auth/invalid-login-credentials":"البريد أو كلمة المرور غير صحيحة.",
+  "auth/wrong-password":"البريد أو كلمة المرور غير صحيحة.","auth/user-not-found":"لا يوجد حساب بهذا البريد. أنشئ حساباً جديداً.",
+  "auth/too-many-requests":"محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.","auth/network-request-failed":"لا يوجد اتصال بالإنترنت. تحقّق من الاتصال ثم حاول مجدداً.",
+  "auth/operation-not-allowed":"تسجيل الدخول بالبريد غير مفعّل في Firebase بعد."};
+let accTab="login",accMsg=null;
+function drawAccount(){
+  const c=$("accCard");let h=`<h4 id="accTitle" class="set-title">حسابي</h4>`;
+  if(cloud.state==="off")h+=`<p class="amsg info">الحسابات غير مفعّلة بعد. يُحفظ تقدّمك على هذا الجهاز.</p>`;
+  else if(cloud.state==="loading")h+=`<p class="amsg info">جارٍ الاتصال…</p>`;
+  else if(cloud.state==="unavailable")h+=`<p class="amsg err">تعذّر الاتصال بخادم الحسابات. تحقّق من الإنترنت، أو افتح اللعبة من رابطها على GitHub.</p>`;
+  else if(cloud.user){
+    h+=`<p style="margin:0;font-family:var(--f-ui);font-size:1.1rem;font-weight:600">مرحباً، ${esc(cloud.name)}</p>
+      <p class="anote" dir="ltr">${esc(cloud.user.email||"")}</p>
+      <div class="astats"><span class="chip star">${STAR}${AR(stars())} نجوم</span><span class="chip gem">${GEM}${AR(gems())} كلمات</span></div>
+      ${cloud.error?`<p class="amsg err">${cloud.error}</p>`:`<p class="amsg info">تقدّمك ونجومك محفوظة في حسابك، فتستطيع أن تكمل من أي جهاز.</p>`}
+      <button class="ghost" id="accOut">تسجيل الخروج</button>`;
+  }else{
+    const reg=accTab==="register";
+    h+=`<div class="tabs" role="tablist"><button role="tab" id="tabLogin" aria-selected="${!reg}">تسجيل الدخول</button><button role="tab" id="tabReg" aria-selected="${reg}">حساب جديد</button></div>
+      <form class="form" id="accForm" novalidate>
+        ${reg?`<label class="field">الاسم<input id="accName" name="name" autocomplete="nickname" maxlength="40" required></label>`:""}
+        <label class="field">البريد الإلكتروني<input id="accEmail" name="email" type="email" dir="ltr" autocomplete="email" inputmode="email" required></label>
+        <label class="field">كلمة المرور<input id="accPass" name="password" type="password" dir="ltr" autocomplete="${reg?"new-password":"current-password"}" minlength="6" required></label>
+        ${accMsg?`<p class="amsg err" role="alert">${accMsg}</p>`:""}
+        <button class="big" id="accGo" type="submit">${reg?"إنشاء الحساب":"دخول"}</button>
+      </form>
+      <p class="anote">${reg?"لا يحتاج الحساب إلى تأكيد البريد. ستنتقل نجومك الحالية إلى حسابك.":"سجّل الدخول لتحفظ تقدّمك ونجومك وتكمل من أي جهاز."}</p>`;
+  }
+  h+=`<button class="ghost" id="accClose">إغلاق</button>`;
+  c.innerHTML=h;
+}
+function openAccount(){accMsg=null;drawAccount();$("setVeil").hidden=true;$("accVeil").hidden=false;(document.getElementById("accEmail")||$("accClose")).focus()}
+function closeAccount(){$("accVeil").hidden=true}
+function refreshAccountBits(){
+  $("setAcct").textContent=cloud.user?"حسابي":"تسجيل الدخول";
+  $("setAcct").closest(".set-row").hidden=cloud.state==="off";
+  if(!$("accVeil").hidden)drawAccount();
+  if(S.view==="home")render(0);
+}
+$("accVeil").addEventListener("click",async e=>{
+  if(e.target===$("accVeil")||e.target.id==="accClose"){closeAccount();return}
+  if(e.target.id==="tabLogin"||e.target.id==="tabReg"){accTab=e.target.id==="tabReg"?"register":"login";accMsg=null;drawAccount();(document.getElementById(accTab==="register"?"accName":"accEmail")).focus();return}
+  if(e.target.id==="accOut"){
+    await cloudFlush();await cloud.auth.signOut();
+    // the next player on this phone starts fresh; this player's progress stays in their account
+    cloud.pendingName="";accTab="login";S={...S,page:0,at:null,ans:{},tries:{},words:{}};dirty=true;save();closeAccount();show("home",-1);toast("تم تسجيل الخروج");
+  }
+});
+$("accVeil").addEventListener("submit",async e=>{
+  e.preventDefault();if(cloud.state!=="ready")return;
+  const reg=accTab==="register",name=(document.getElementById("accName")?.value||"").trim(),
+        email=$("accEmail").value.trim(),pass=$("accPass").value;
+  if(reg&&!name){accMsg="اكتب اسمك.";drawAccount();$("accName").focus();return}
+  if(!email){accMsg="اكتب بريدك الإلكتروني.";drawAccount();$("accEmail").focus();return}
+  const keep={name,email};
+  $("accGo").disabled=true;$("accGo").textContent="لحظة…";
+  try{
+    if(reg){cloud.pendingName=name;const cr=await cloud.auth.createUserWithEmailAndPassword(email,pass);await cr.user.updateProfile({displayName:name});cloud.name=name;cloudSave()}
+    else await cloud.auth.signInWithEmailAndPassword(email,pass);
+    accMsg=null;closeAccount();toast(reg?`أهلاً ${name}! أُنشئ حسابك وحُفظ تقدّمك.`:"تم تسجيل الدخول. تقدّمك محفوظ.");
+  }catch(err){
+    cloud.pendingName="";accMsg=AUTH_ERR[err.code]||"حدث خطأ. حاول مرة أخرى.";drawAccount();
+    if(document.getElementById("accName"))$("accName").value=keep.name;$("accEmail").value=keep.email;$("accPass").focus();
+  }
+});
+$("setAcct").onclick=openAccount;
+$("setAcct").closest(".set-row").hidden=cloud.state==="off";
+addEventListener("online",()=>{if(cloud.user)cloudFlush()});
+
+function start(data){if(data&&typeof data.page==="number")S=Object.assign(S,data);else load();applyPrefs();render(1);initCloud()}
 window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??null);
 </script>
 

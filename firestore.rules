@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Each player has one document: players/{their uid}.
+// A signed-in player can read and write only their own document. Nobody can list, read or change anyone else's.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /players/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validPlayer(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validPlayer(d) {
+      return d.keys().hasOnly(['displayName', 'totalStars', 'totalWords', 'levels', 'prefs', 'createdAt', 'updatedAt'])
+        && (!('displayName' in d) || (d.displayName is string && d.displayName.size() <= 40))
+        && (!('totalStars' in d) || (d.totalStars is int && d.totalStars >= 0 && d.totalStars <= 1000))
+        && (!('totalWords' in d) || (d.totalWords is int && d.totalWords >= 0 && d.totalWords <= 1000))
+        && (!('levels' in d) || d.levels is map)
+        && (!('prefs' in d) || d.prefs is map);
+    }
+  }
+}
