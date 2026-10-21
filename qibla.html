@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#eef0ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1513" media="(prefers-color-scheme: dark)">
+<title>Qibla Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered column — instruction on top, dial as the hero, button and readings below */
+:root{
+  --bg:#eef0ec;
+  --ink:#14201d;
+  --muted:#5b6863;
+  --line:#c3cbc6;
+  --dial:#f8f9f6;
+  --accent:#a8741c;   /* brass */
+  --ok:#1b7a57;
+  --btn-ink:#f8f9f6;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --body:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1513; --ink:#e6ece9; --muted:#8b9994; --line:#26332f; --dial:#131e1b;
+    --accent:#d9a441; --ok:#3fbf8c; --btn-ink:#0d1513;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:15px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  min-height:100dvh;
+  padding-block:max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color:transparent;
+}
+header{text-align:center; display:flex; flex-direction:column; gap:6px; max-width:26rem}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0}
+h1{font-family:var(--display); font-weight:700; font-size:clamp(26px, 7vw, 34px); line-height:1.1; margin:0; text-wrap:balance}
+h1.aligned{color:var(--ok)}
+.sub{margin:0; color:var(--muted); line-height:1.45; text-wrap:balance}
+
+.dial{width:min(86vw, 360px); max-width:100%; height:auto; display:block}
+.dial .face{fill:var(--dial); stroke:var(--line); stroke-width:1.5}
+.dial .tick{stroke:var(--muted); stroke-width:1}
+.dial .tick.major{stroke:var(--ink); stroke-width:2}
+.dial .num{fill:var(--muted); font:500 10px var(--mono)}
+.dial .card{fill:var(--ink); font:700 17px var(--display)}
+.dial .card.n{fill:var(--accent)}
+.dial .lubber{fill:var(--ink); transition:fill .2s}
+.dial.aligned .lubber{fill:var(--ok)}
+.dial .qline{stroke:var(--accent); stroke-width:3; stroke-linecap:round}
+.dial.aligned .qline{stroke:var(--ok)}
+.dial .kaaba{fill:var(--ink)}
+.dial .band{fill:var(--accent)}
+.dial .hub{fill:var(--ink)}
+
+button{
+  font:600 16px var(--body); border:0; border-radius:999px; padding:14px 28px; min-height:48px;
+  background:var(--ink); color:var(--btn-ink); cursor:pointer;
+}
+button:focus-visible{outline:3px solid var(--accent); outline-offset:3px}
+button:disabled{opacity:.55; cursor:default}
+
+dl{
+  margin:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px 20px;
+  width:100%; max-width:26rem; text-align:center;
+  border-top:1px solid var(--line); padding-top:14px;
+}
+dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+dd{margin:4px 0 0; font:500 16px var(--mono); font-variant-numeric:tabular-nums}
+.note{margin:0; max-width:26rem; text-align:center; font-size:13px; color:var(--muted); line-height:1.5}
+.note.warn{color:var(--accent)}
+.back{align-self:flex-start;color:var(--muted);text-decoration:none;font-size:14px;padding:6px 0}
+.back:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">‹ Back to the stories</a>
+
+<header>
+  <p class="eyebrow">Direction of the Kaaba · Makkah</p>
+  <h1 id="title">Find the Qibla</h1>
+  <p class="sub" id="sub">Tap the button below. Your phone's GPS works out the direction from where you are standing.</p>
+</header>
+
+<svg class="dial" id="dial" viewBox="0 0 300 320" role="img" aria-label="Qibla compass">
+  <!-- fixed pointer: the direction the top of the phone is facing -->
+  <path class="lubber" d="M150 26 L140 6 L160 6 Z"/>
+  <g id="rose">
+    <circle class="face" cx="150" cy="170" r="134"/>
+    <g id="ticks"></g>
+    <g id="qmark" hidden>
+      <line class="qline" x1="150" y1="170" x2="150" y2="62"/>
+      <rect class="kaaba" x="140" y="30" width="20" height="20" rx="1.5"/>
+      <rect class="band" x="140" y="35" width="20" height="3.5"/>
+    </g>
+    <circle class="hub" cx="150" cy="170" r="5"/>
+  </g>
+</svg>
+
+<button id="go" type="button">Find my location</button>
+
+<dl>
+  <div><dt>Qibla</dt><dd id="bearing">—</dd></div>
+  <div><dt>Distance</dt><dd id="dist">—</dd></div>
+  <div><dt>GPS</dt><dd id="acc">—</dd></div>
+</dl>
+
+<p class="note" id="note">Hold the phone flat and away from metal, magnets and speakers. If the dial drifts, move the phone in a figure-8 a few times.</p>
+
+<script>
+(function(){
+  const KAABA = { lat: 21.422487, lon: 39.826206 };
+  const ALIGN_DEG = 3;          // within ±3° counts as facing the Qibla
+  const SMOOTH = 0.18;          // compass smoothing (0–1, lower = steadier)
+
+  const $ = id => document.getElementById(id);
+  const titleEl = $('title'), subEl = $('sub'), noteEl = $('note');
+  const rose = $('rose'), dial = $('dial'), qmark = $('qmark'), btn = $('go');
+
+  let qibla = null;             // bearing to Kaaba from true north, degrees
+  let heading = null;           // smoothed phone heading, degrees
+  let sx = null, sy = null;     // smoothing vector
+  let compassStarted = false, gotCompass = false, noCompass = false;
+  let wasAligned = false;
+
+  const rad = d => d * Math.PI / 180;
+  const deg = r => r * 180 / Math.PI;
+  const norm = d => ((d % 360) + 360) % 360;
+
+  // Great-circle initial bearing from (lat, lon) to the Kaaba
+  function qiblaBearing(lat, lon){
+    const p1 = rad(lat), p2 = rad(KAABA.lat), dl = rad(KAABA.lon - lon);
+    const y = Math.sin(dl) * Math.cos(p2);
+    const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return norm(deg(Math.atan2(y, x)));
+  }
+
+  // Haversine distance in km
+  function distanceKm(lat, lon){
+    const R = 6371, dp = rad(KAABA.lat - lat), dl = rad(KAABA.lon - lon);
+    const a = Math.sin(dp/2)**2 + Math.cos(rad(lat)) * Math.cos(rad(KAABA.lat)) * Math.sin(dl/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  function compassPoint(d){
+    const pts = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    return pts[Math.round(norm(d) / 22.5) % 16];
+  }
+
+  // Build the dial ticks and labels
+  (function buildDial(){
+    const ns = 'http://www.w3.org/2000/svg', g = $('ticks'), cx = 150, cy = 170;
+    const cards = { 0:'N', 90:'E', 180:'S', 270:'W' };
+    for (let a = 0; a < 360; a += 5){
+      const major = a % 30 === 0;
+      const r1 = 128, r2 = major ? 114 : 121;
+      const t = document.createElementNS(ns, 'line');
+      t.setAttribute('x1', cx); t.setAttribute('y1', cy - r1);
+      t.setAttribute('x2', cx); t.setAttribute('y2', cy - r2);
+      t.setAttribute('class', 'tick' + (major ? ' major' : ''));
+      t.setAttribute('transform', `rotate(${a} ${cx} ${cy})`);
+      g.appendChild(t);
+      if (major){
+        const txt = document.createElementNS(ns, 'text');
+        const isCard = a in cards;
+        txt.textContent = isCard ? cards[a] : a;
+        txt.setAttribute('x', cx); txt.setAttribute('y', cy - 100);
+        txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('dominant-baseline', 'central');
+        txt.setAttribute('class', isCard ? 'card' + (a === 0 ? ' n' : '') : 'num');
+        txt.setAttribute('transform', `rotate(${a} ${cx} ${cy})`);
+        g.appendChild(txt);
+      }
+    }
+  })();
+
+  // ---------- Compass ----------
+  function startCompass(){
+    if (compassStarted) return;
+    compassStarted = true;
+    const evt = ('ondeviceorientationabsolute' in window) ? 'deviceorientationabsolute' : 'deviceorientation';
+    window.addEventListener(evt, onOrient, true);
+    setTimeout(() => { if (!gotCompass){ noCompass = true; render(); } }, 3500);
+  }
+
+  function onOrient(e){
+    let h = null;
+    if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)){
+      h = e.webkitCompassHeading;                 // iPhone: already clockwise from north
+    } else if (e.absolute && typeof e.alpha === 'number'){
+      h = 360 - e.alpha;                          // Android: alpha is counter-clockwise
+    }
+    if (h === null) return;                       // relative-only data can't point north
+    const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    h = norm(h + screenAngle);
+
+    // Smooth on the unit circle so 359° → 1° doesn't spin the dial
+    const c = Math.cos(rad(h)), s = Math.sin(rad(h));
+    if (sx === null){ sx = c; sy = s; }
+    else { sx += (c - sx) * SMOOTH; sy += (s - sy) * SMOOTH; }
+    heading = norm(deg(Math.atan2(sy, sx)));
+
+    if (!gotCompass){ gotCompass = true; noCompass = false; }
+    scheduleRender();
+  }
+
+  let raf = 0;
+  function scheduleRender(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+
+  function render(){
+    const h = (gotCompass && heading !== null) ? heading : 0;
+    rose.setAttribute('transform', `rotate(${-h} 150 170)`);
+
+    if (qibla === null) return;
+
+    if (!gotCompass){
+      dial.classList.remove('aligned'); titleEl.classList.remove('aligned');
+      titleEl.textContent = `${Math.round(qibla)}° ${compassPoint(qibla)}`;
+      subEl.textContent = noCompass
+        ? 'Your device did not report a compass. Turn the dial so N faces north, then follow the gold line.'
+        : 'Waiting for the compass…';
+      return;
+    }
+
+    const diff = ((qibla - heading + 540) % 360) - 180;   // −180…180, + means turn right
+    const aligned = Math.abs(diff) <= ALIGN_DEG;
+    dial.classList.toggle('aligned', aligned);
+    titleEl.classList.toggle('aligned', aligned);
+    if (aligned){
+      titleEl.textContent = 'You are facing the Qibla';
+      subEl.textContent = 'Keep the phone flat and pointing ahead.';
+      if (!wasAligned && navigator.vibrate) navigator.vibrate(60);
+    } else {
+      titleEl.textContent = `Turn ${Math.round(Math.abs(diff))}° ${diff > 0 ? 'right' : 'left'}`;
+      subEl.textContent = 'Turn until the Kaaba sits under the pointer at the top.';
+    }
+    wasAligned = aligned;
+  }
+
+  // ---------- GPS ----------
+  function setBusy(msg){ btn.disabled = true; btn.textContent = msg; }
+  function setReady(label){ btn.disabled = false; btn.textContent = label; }
+
+  function onPos(pos){
+    const { latitude, longitude, accuracy } = pos.coords;
+    qibla = qiblaBearing(latitude, longitude);
+    $('bearing').textContent = `${Math.round(qibla)}° ${compassPoint(qibla)}`;
+    $('dist').textContent = `${Math.round(distanceKm(latitude, longitude)).toLocaleString()} km`;
+    $('acc').textContent = `±${Math.round(accuracy)} m`;
+    qmark.setAttribute('transform', `rotate(${qibla} 150 170)`);
+    qmark.hidden = false;
+    setReady('Update location');
+    render();
+  }
+
+  function onErr(err){
+    const msgs = {
+      1: 'Location is blocked for this page. Allow location in your browser’s site settings, then tap again.',
+      2: 'No GPS fix yet. Step near a window or outside and tap again.',
+      3: 'GPS took too long. Step near a window or outside and tap again.'
+    };
+    titleEl.textContent = 'Location not found';
+    subEl.textContent = msgs[err.code] || 'Something went wrong reading your location. Tap to try again.';
+    setReady('Try again');
+  }
+
+  async function start(){
+    setBusy('Locating…');
+
+    // iPhone needs motion permission requested from the tap itself
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function'){
+      try { await DeviceOrientationEvent.requestPermission(); } catch (e) {}
+    }
+    startCompass();
+
+    // Keep the screen awake while using the compass (optional)
+    try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {}
+
+    if (!window.isSecureContext){
+      titleEl.textContent = 'Open over https://';
+      subEl.textContent = 'Browsers only share GPS with pages served over https:// (or localhost).';
+      setReady('Try again'); return;
+    }
+    if (!('geolocation' in navigator)){
+      titleEl.textContent = 'No GPS';
+      subEl.textContent = 'This browser cannot read your location.';
+      setReady('Try again'); return;
+    }
+    if (qibla === null){ titleEl.textContent = 'Finding you…'; subEl.textContent = 'Allow location access when your browser asks.'; }
+    navigator.geolocation.getCurrentPosition(onPos, onErr, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
+  }
+
+  btn.addEventListener('click', start);
+  render();
+})();
+</script>
+</body>
+</html>

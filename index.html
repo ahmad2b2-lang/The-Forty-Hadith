@@ -249,6 +249,9 @@ body.chromeless main{padding-block:12px calc(28px + env(safe-area-inset-bottom,0
 .astats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .anote{margin:0;font-family:var(--f-ui);font-size:.85rem;line-height:1.6;color:var(--muted);text-align:center}
 .big:disabled{opacity:.6;cursor:default}
+.qibla-link{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--plum);border-radius:16px;background:var(--paper);color:var(--plum);font-family:var(--f-ui);font-weight:600;font-size:1rem;padding:10px 22px;text-decoration:none;box-shadow:var(--shadow)}
+.qibla-link svg{width:20px;height:20px}
+.qibla-link:focus-visible{outline:3px solid var(--plum);outline-offset:3px}
 
 /* leaf burst */
 .leaf{position:fixed;width:14px;height:14px;border-radius:0 70% 0 70%;pointer-events:none;z-index:50;animation:fall 1.1s ease-out forwards}
@@ -567,6 +570,7 @@ function renderHome(){
     <div class="homebar">${acctChip()}<button class="tbtn gear" data-act="settings" aria-label="الإعدادات">${GEAR()}</button></div>
     <div class="homemid"><figure class="bookcover"><img src="${COVER}" alt="غلاف كتاب شرح الأربعون حديثاً للناشئة"></figure>
     <button class="big" data-act="map">${stars()||gems()?"أكمل الرحلة":"ابدأ الرحلة"}</button>
+    <a class="qibla-link" href="qibla.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>اتجاه القبلة</a>
     <div class="meta"><span>${AR(LEVELS.length)} قصص</span><span>${AR(LEVELS.length)} مستويات</span><span>★ ${AR(stars())} نجوم</span></div></div>
   </div>`;
 }
